@@ -1,0 +1,14 @@
+{% extends "dynamic.html" %}
+{% block body %}
+  <form id=login action="{{ url_for('login') }}" method=post>
+    Login
+    <dl>
+      <dt>Email:
+        <dd><input type=text size=30 name=email>
+        <dt>Password:
+        <dd><input type=password name=password>
+        <dd><input type=submit value=Login>
+        <dd><input type=submit value=Cancel>
+    </dl>
+  </form>
+{% endblock %}

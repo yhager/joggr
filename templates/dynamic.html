@@ -1,0 +1,10 @@
+{% if not session.uid %}
+<div class=metanav>
+  <a href=# id=login>Log in</a>
+  /
+  <a href=# id=signup>Sign up</a>
+{% else %}
+  <a href=# id=logout>Logout</a>
+{% endif %}
+</div>
+{% block body %}{% endblock %}
