@@ -1,6 +1,18 @@
 {% extends "layout.html" %}
+{% block javascript %}
+{% endblock %}
 {% block body %}
-  {% if session.logged_in %}
+  <div class=metanav>
+    <a href=# id=login>Log in</a>
+    /
+    <a href=# id=signup >Sign up</a>
+    <a href=# id=logout>Log out</a>
+  </div>
+  {% for message in get_flashed_messages() %}
+    <div class=flash>{{ message }}</div>
+  {% endfor %}
+
+  {% if session.uid %}
     <form action="{{ url_for('add_entry') }}" method=post class=add-entry>
       <dl>
         <dt>Title:
@@ -11,6 +23,31 @@
       </dl>
     </form>
   {% endif %}
+  <form id=login action="{{ url_for('login') }}" method=post>
+    Login
+    <dl>
+      <dt>Email:
+      <dd><input type=text size=30 name=email>
+      <dt>Password:
+      <dd><input type=password name=password>
+      <dd><input type=submit value=Login>
+      <dd><input type=submit value=Cancel>
+    </dl>
+  </form>
+  <form id=signup action="{{ url_for('signup') }}" method=post>
+    Sign Up
+    <dl>
+      <dt>Email:
+      <dd><input type=text size=30 name=email>
+      <dt>Password:
+      <dd><input type=password name=password>
+      <dt>Verify Password:
+      <dd><input type=password2 name=password>
+      <dd><input type=submit value=Login>
+      <dd><input type=submit value=Cancel>
+    </dl>
+  </form>
+  <div id=signup>signup</div>
   <ul class=entries>
   {% for entry in entries %}
     <li><h2>{{ entry.title }}</h2>{{ entry.text|safe }}

@@ -2,38 +2,42 @@ $(function() {
     api('body');
     callOn('a#login', 'login');
     callOn('a#signup', 'signup');
-    callOn('a#logout', 'logout');
-    $('form#login').ajaxForm({
+    callOn('a#logout', 'logout', 'POST');
+    callOn('a#entries', 'body');
+    callOn('a#weekly', 'weekly');
+    callOn('#showall', 'body');
+    $('form').ajaxForm({
         dataType: 'json',
         delegation: true,
-        success: processLogin
-    });
-    $('form#signup').ajaxForm({
-        dataType: 'json',
-        delegation: true,
-        success: processSignup
+        success: processResponse
     });
 });
 
-function callOn(sel, url, event='click') {
+function callOn(sel, cmd, method, event) {
+    event = (typeof event === 'undefined') ? 'click' : event;
     $('.body').on(event, sel, function() {
-        api(url);
+        api(cmd, method);
         return false;
     });
 }
 
-function api(url) {
-    $.getJSON('/api/v1/' + url, function(result) {
-        $('div.body').html(result.body);
+function api(cmd, method) {
+    method = (typeof method === 'undefined') ? 'GET' : method;
+    $.ajax({
+        dataType: "json",
+        url: '/api/v1/' + cmd,
+        type: method,
+        success: processResponse
     });
 }
 
-function processLogin(data) {
-    if (data.error) {
-        alert(data.error);
-    } else if (data.message) {
-        alert(data.message)
+function processResponse(response) {
+    $('div.body').html(response.body);
+    if (!Modernizr.inputtypes.date && $('#datepicker').length > 0) {
+        $('.datepicker').datepicker({
+            dateFormat: 'yy-mm-dd',
+            showButtonPanel: true,
+            autoSize: true,
+        });
     }
-}
-function processSignup(data) {
 }

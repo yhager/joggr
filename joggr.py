@@ -1,8 +1,12 @@
 import os
 import sqlite3
 from flask import Flask, g, session, render_template, jsonify, \
-    request
+    request, flash, redirect, url_for, abort
 from werkzeug import check_password_hash, generate_password_hash
+from datetime import datetime, timedelta
+from time import mktime, localtime
+import re
+from functools import wraps
 
 app = Flask(__name__)
 app.config.from_object(__name__)
@@ -48,6 +52,42 @@ def get_uid(email):
                   [email], one=True)
     return rv[0] if rv else None
 
+def get_entries(from_date = None, to_date = None):
+    if not g.user:
+        return None
+    where = 'uid=?'
+    args = [g.user['uid']]
+    if from_date and to_date:
+        where = where + ' and date >=? and date <=?'
+        args.append(mktime(from_date.timetuple()))
+        args.append(mktime(to_date.timetuple()))
+    return query_db('''select date(date, 'unixepoch', 'localtime') as date,
+                              distance,
+                              time(time, 'unixepoch') as time,
+                              round(distance*3600/time, 1) as speed
+                       from entries
+                       where {where} order by date desc'''.format(where=where),
+                    args)
+
+def jsonify_template(t, **kwargs):
+    return jsonify(body=render_template(t, **kwargs))
+
+def login_required(func):
+    @wraps(func)
+    def decorated_view(*args, **kwargs):
+        if not g.user:
+            abort(401)
+        return func(*args, **kwargs)
+    return decorated_view
+
+def anon_only(func):
+    @wraps(func)
+    def decorated_view(*args, **kwargs):
+        if g.user:
+            abort(401)
+        return func(*args, **kwargs)
+    return decorated_view
+
 @app.before_request
 def before_request():
     g.user = None
@@ -60,110 +100,137 @@ def main_window():
     return render_template('layout.html')
 
 @app.route('/api/v1/body')
-def get_body():
-    if g.user:
-        body = render_template('entries.html')
-    else:
-        body = render_template('entry.html')
-    return jsonify(message=None,
-                   body=body)
+def body():
+    template = 'entries.html' if g.user else 'entry.html'
+    return jsonify_template(template, entries=get_entries())
 
 @app.route('/api/v1/signup', methods=['GET', 'POST'])
+@anon_only
 def signup():
-    if g.user:
-        abort(401)
     if request.method == 'GET':
-        return jsonify(body=render_template('signup.html'))
-
-class JResponse:
-    def __init__(self):
-        self.error = None
-        self.msg = None
-        self.entries = []
-
-    def jsonify(self):
-        return jsonify(error = self.error,
-                       msg = self.msg,
-                       entries = self.entries)
+        return jsonify_template('signup.html')
+    error = None
+    if request.method == 'POST':
+        if not request.form['email'] or \
+           '@' not in request.form['email']:
+            error = 'Please enter a valid email address'
+        elif not request.form['password']:
+            error = 'You have to enter a password'
+        elif request.form['password'] != request.form['password2']:
+            error = 'The two passwords do not match'
+        elif get_uid(request.form['email']) is not None:
+            error = 'This email address is already registered'
+        else:
+            db = get_db()
+            db.execute('INSERT INTO users(email, pwhash) VALUES(?, ?)',
+                   [request.form['email'],
+                    generate_password_hash(request.form['password'])])
+            db.commit()
+            flash('You were successfully signed up and can login now')
+            return redirect(url_for('login'))
+    return jsonify_template('signup.html', error=error)
 
 @app.route('/api/v1/login', methods=['GET', 'POST'])
+@anon_only
 def login():
-    r = JResponse()
-    if g.user:
-        return r.jsonify()
     if request.method == 'GET':
-        return jsonify(body=render_template('login.html'))
-    elif request.method == 'POST':
+        return jsonify_template('login.html')
+    error = None
+    if request.method == 'POST':
         user = query_db('select * from users where email=?',
                         [request.form['email']], one=True)
         if user is None or \
-           not ceck_password_hash(user['pwhash'], request.form['password']):
-            r.error = 'Invalid email or password'
+           not check_password_hash(user['pwhash'], request.form['password']):
+            error = 'Invalid email or password'
         else:
-            r.msg = 'Welcome, You logged in successfuly'
-            session['uid'] = user.uid
-            r.entries = get_entries(user.uid)
-    return r.jsonify()
+            flash('Welcome, You logged in successfuly')
+            session['uid'] = user['uid']
+            return redirect(url_for('body'))
+    return jsonify_template('login.html', error=error)
 
 @app.route('/api/v1/logout', methods=['POST'])
+@login_required
 def logout():
     if not g.user:
         abort(401)
     if g.user:
         session.pop('uid', None)
-        r.msg = 'You were logged out'
-        r.entries = []
-    return r.jsonify()
+        flash('You were logged out')
+    return redirect(url_for('body'))
 
 @app.route('/api/v1/entries/add', methods=['POST'])
+@login_required
 def add_entry():
-    if not g.user:
-        abort(401)
-    r = JResponse()
     db = get_db()
-    date = request.args.get('date') # convert to timestamp
-    distance = request.args.get('distance', 0, type=float)
-    time = request.args.get('time', 0, type=int)
+    error = None
+    try:
+        date = datetime.strptime(request.form.get('date'), '%Y-%m-%d')
+    except ValueError:
+        error = 'Please enter date in YYYY-MM-DD format'
+    distance = request.form.get('distance', 0, type=float)
+    time_input = re.findall('[0-9]+', request.form.get('time', '0:0'))
+    if len(time_input) != 2:
+        error = 'Please input time in hh:mm format'
+    elif int(time_input[0]) == 0 and int(time_input[1]) == 0:
+        error = 'Please enter the time you ran'
+    elif distance == 0.0:
+        error = 'Please enter the distance you ran, in miles'
+    if error:
+        return jsonify_template('entries.html', error=error, entries=get_entries())
+    time = timedelta(minutes=int(time_input[0]), seconds=int(time_input[1]))
     db.execute('insert into entries(uid,date,distance,time) values (?, ?, ?, ?)',
-               [g.user.uid, date, distance, time])
+               [g.user['uid'], mktime(date.timetuple()), distance, time.seconds])
     db.commit()
-    update_weekly(uid, date, distance, time)
-    r.entries = get_entries(g.user.uid)
-    return jsonify(success=True)
+    update_weekly(date)
+    flash('Entry added')
+    return redirect(url_for('body'))
 
-@app.route('/api/v1/entries/filter')
-def filter_entries():
-    if not g.user:
-        abort(401)
+@app.route('/api/v1/weekly')
+@login_required
+def weekly():
+    entries = query_db('''select date(week_start, 'unixepoch', 'localtime') as week_start,
+                                 round(avg_speed,1) as avg_speed, total_distance
+                          from weekly
+                          where uid=?
+                          order by week_start desc''',
+                       [g.user['uid']])
+    return jsonify_template('weekly.html', entries=entries)
+
+@app.route('/api/v1/entries/filter', methods=['POST'])
+@login_required
+def filter():
     db = get_db()
-    from_date = request.args.get('from') # convert to timestamp
-    to_date = request.args.get('to') # same
-    cur = db.execute('select date,distance,time from entries where uid=? and date>=? and date<=?',
-                     [uid, from_date, to_date])
-    return jsonify(success=True, entries=cur.fetchall())
+    from_date = to_date = None
+    error = None
+    try:
+        from_date = datetime.strptime(request.form.get('from'), '%Y-%m-%d')
+        to_date = datetime.strptime(request.form.get('to'), '%Y-%m-%d')
+    except ValueError:
+        error = 'Please enter valid dates to filter on'
+    if to_date < from_date:
+        error = 'second date must be later than the first'
+        from_date = to_date = None
+    entries = get_entries(from_date, to_date)
+    return jsonify_template('entries.html', entries=entries, filter_error=error)
 
-def update_weekly(uid, date, distance, time):
+def update_weekly(date):
     '''Calculate weekly summary and store in db'''
-    week = int(datetime(date).strftime('%W'))
-    year = int(datetime(date).srtftime('%Y'))
-    week_start = get_week_start(date)
-    week_end = week_start + 7*24*3600
-    cur = db.cursor()
-    cur.execute('''select count(*) as count,
-                          sum(distance) as distance,
-                          sum(time) as time
-                   from entries
-                   where uid=? and date>=? and date<=?''',
-                [uid,week_start, week_end])
-    row = cur.fetchone()
-    # insert/update duo
-    cur.execute('insert or ignore into weekly(uid,week,year) values (?, ?, ?)',
-                [uid,week,year])
-    cur.execute('''update weekly set speed=?, distance=?
-                   WHERE uid=? AND week=? AND year=?
-                   values(?, ?, ?, ?, ?)''',
-                   [row.distance/row.time, row.distance, uid, week, year])
-    cur.commit()
-    return jsonify(success=True)
+    day_of_week = date.weekday()
+    week_start = date - timedelta(days=day_of_week)
+    week_end = week_start + timedelta(days=7)
+    db = get_db()
+    db.execute('''insert or replace
+                  into weekly(uid,week_start,avg_speed,total_distance)
+                    select ?, ?,
+                           3600*sum(distance)/sum(time),
+                           sum(distance)
+                    from entries
+                    where uid=? and date>=? and date<?''',
+               [g.user['uid'],
+                mktime(week_start.timetuple()),
+                g.user['uid'],
+                mktime(week_start.timetuple()),
+                mktime(week_end.timetuple())])
+    db.commit()
 
 app.run()

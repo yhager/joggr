@@ -1,10 +1,15 @@
-{% if not session.uid %}
 <div class=metanav>
+{% if not session.uid %}
   <a href=# id=login>Log in</a>
   /
   <a href=# id=signup>Sign up</a>
 {% else %}
+  <a href=# id=entries>Entries</a>
+  <a href=# id=weekly>Weekly Summary</a>
   <a href=# id=logout>Logout</a>
 {% endif %}
 </div>
+{% for message in get_flashed_messages() %}
+  <div class=flash>{{ message }}</div>
+{% endfor %}
 {% block body %}{% endblock %}

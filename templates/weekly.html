@@ -1,0 +1,20 @@
+{% extends "dynamic.html" %}
+{% block body%}
+  <h2>Weekly Summary</h2>
+  {% if entries %}
+    <table border>
+      <tr>
+        <th>Week start</th><th>Total Distance</th><th>Avg Speed (Mph)</th>
+      </tr>
+      {% for entry in entries %}
+        <tr>
+          <td>{{ entry.week_start }}</td>
+          <td>{{ entry.total_distance }}</td>
+          <td>{{ entry.avg_speed }} </td>
+        </tr>
+      {% endfor %}
+    </table>
+  {% else %}
+    <small>No entries yet</small>
+  {% endif %}
+{% endblock %}

@@ -1,0 +1,42 @@
+{% extends "dynamic.html" %}
+{% block body%}
+  <h3>Filter entries</h3>
+  {% if filter_error %}<div class=error><strong>Error:</strong> {{ filter_error }}</div>{% endif %}
+  <form id=filter action="{{ url_for('filter') }}" method=post>
+    <input required type=date name=from id=from_date class=datepicker placeholder="From date" value={{ request.form.from }}>
+    <input required type=date name=to id=to_date class=datepicker placeholder="To date" value={{ request.form.to }}>
+    <input type=submit value="Filter">
+    <input type=button class=showall value="Show All">
+  </form>
+  <h3>Entries</h3>
+  {% if entries %}
+    <table border>
+      <tr>
+        <th>Date</th><th>Miles</th><th>Time</th><th>Avg Speed (Mph)</th>
+      </tr>
+      {% for entry in entries %}
+        <tr>
+          <td>{{ entry.date }}</td>
+          <td>{{ entry.distance }}</td>
+          <td>{{ entry.time }} </td>
+          <td>{{ entry.speed }} </td>
+        </tr>
+      {% endfor %}
+    </table>
+  {% else %}
+    <small>No entries yet</small>
+  {% endif %}
+  <h3>Add a jogging event</h3>
+  {% if error %}<div class=error><strong>Error:</strong> {{ error }}</div>{% endif %}
+  <form class=entries id=addentry action="{{ url_for('add_entry') }}" method=post>
+    <ul>
+      <li><input required type=date name=date class=datepicker id=datepicker placeholder="Date" value = {{ request.form.date }}>
+      <li><input required type=number name=distance placeholder="Distance in miles" min=0 step=0.1 value={{ request.form.distance }}>
+      <li><input required type=text name=time placeholder="Time (mm:ss)" pattern="[0-9]+:[0-9][0-9]?" value={{ request.form.time }}>
+    </ul>
+    <div class="actions">
+      <input type=submit value="Add Entry">
+      <input type=reset value="Clear">
+    </div>
+  </form>
+{% endblock %}

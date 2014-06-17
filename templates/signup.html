@@ -1,16 +1,18 @@
 {% extends "dynamic.html" %}
 {% block body %}
+  <h2>Sign Up</h2>
+  {% if error %}<div class=error><strong>Error:</strong> {{ error }}</div>{% endif %}
   <form id=signup action="{{ url_for('signup') }}" method=post>
-    Sign Up
     <dl>
       <dt>Email:
-      <dd><input type=text size=30 name=email>
+      <dd><input required type=email size=30 name=email placeholder="Enter your email address" value="{{ request.form.email }}">
       <dt>Password:
-      <dd><input type=password name=password>
-      <dt>Verify Password:
-      <dd><input type=password2 name=password>
-      <dd><input type=submit value=Login>
-      <dd><input type=submit value=Cancel>
+      <dd><input required type=password name=password size=30>
+      <dt>Password <small>(repeat)</small>:
+      <dd><input required type=password name=password2 size=30>
     </dl>
+    <div class=actions>
+      <input type=submit value="Sign up">
+    </div>
   </form>
 {% endblock body %}
