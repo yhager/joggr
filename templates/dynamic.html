@@ -6,7 +6,7 @@
 {% else %}
   <a href=# id=entries>Entries</a>
   <a href=# id=weekly>Weekly Summary</a>
-  <a href=# id=logout>Logout</a>
+  <a href=# id=logout>Logout ({{ g.user['email'] }})</a>
 {% endif %}
 </div>
 {% for message in get_flashed_messages() %}

@@ -6,7 +6,7 @@
     <input required type=date name=from id=from_date class=datepicker placeholder="From date" value={{ request.form.from }}>
     <input required type=date name=to id=to_date class=datepicker placeholder="To date" value={{ request.form.to }}>
     <input type=submit value="Filter">
-    <input type=button class=showall value="Show All">
+    <input type=button id=showall value="Show All">
   </form>
   <h3>Entries</h3>
   {% if entries %}
