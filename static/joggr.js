@@ -1,11 +1,11 @@
 $(function() {
-    api('body');
-    callOn('a#login', 'login');
-    callOn('a#signup', 'signup');
-    callOn('a#logout', 'logout', 'POST');
-    callOn('a#entries', 'body');
-    callOn('a#weekly', 'weekly');
-    callOn('#showall', 'body');
+    api('entries/list');
+    callOn('a#login', 'users/login');
+    callOn('a#signup', 'users/register');
+    callOn('a#logout', 'users/logout', 'POST');
+    callOn('a#entries', 'entries/list');
+    callOn('a#weekly', 'entries/weekly');
+    callOn('#showall', 'entries/list');
     $('form').ajaxForm({
         dataType: 'json',
         delegation: true,

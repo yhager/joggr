@@ -99,12 +99,12 @@ def before_request():
 def main_window():
     return render_template('layout.html')
 
-@app.route('/api/v1/body')
+@app.route('/api/v1/entries/list')
 def body():
     template = 'entries.html' if g.user else 'entry.html'
     return jsonify_template(template, entries=get_entries())
 
-@app.route('/api/v1/signup', methods=['GET', 'POST'])
+@app.route('/api/v1/users/register', methods=['GET', 'POST'])
 @anon_only
 def signup():
     if request.method == 'GET':
@@ -130,7 +130,7 @@ def signup():
             return redirect(url_for('login'))
     return jsonify_template('signup.html', error=error)
 
-@app.route('/api/v1/login', methods=['GET', 'POST'])
+@app.route('/api/v1/users/login', methods=['GET', 'POST'])
 @anon_only
 def login():
     if request.method == 'GET':
@@ -148,7 +148,7 @@ def login():
             return redirect(url_for('body'))
     return jsonify_template('login.html', error=error)
 
-@app.route('/api/v1/logout', methods=['POST'])
+@app.route('/api/v1/users/logout', methods=['POST'])
 @login_required
 def logout():
     if not g.user:
@@ -185,7 +185,7 @@ def add_entry():
     flash('Entry added')
     return redirect(url_for('body'))
 
-@app.route('/api/v1/weekly')
+@app.route('/api/v1/entries/weekly')
 @login_required
 def weekly():
     entries = query_db('''select date(week_start, 'unixepoch', 'localtime') as week_start,
@@ -233,4 +233,5 @@ def update_weekly(date):
                 mktime(week_end.timetuple())])
     db.commit()
 
-app.run()
+if __name__ == '__main__':
+    app.run()
