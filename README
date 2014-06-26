@@ -1,0 +1,58 @@
+A simple flask app, to record jogging events.
+
+This is not meant to be actually used, I just created this while I was
+learning flask. It's best used for educational purposes, demonstrating a
+simple Single Page Application usind flask & jquery.
+
+Features:
+
+  * Users can create an account and log in
+  * When logged in, view the jogging events you entered
+  * Each time entry includes a date, distance and time.
+  * When displayed, an average speed is shown
+  * You can filter the display bu from-to
+  * There's a weekly report of total distance and average speed
+  * REST API is used for all actions
+  * No page refresh
+  * Unit tests
+
+Installation:
+
+  * Install flask, easiest using a virtualenv.
+  * Run 'python joggr.py'
+  * The application should be available on http://localhost:5000
+
+  Installing on a server:
+
+  * Make your server communicate to fastcgi when accessing the domain (I used nginx)
+  * Run 'python joggr.fcgi' on the server and you should be good to go
+
+Implementation notes:
+
+  * I wanted to learn flask, so I chose to focus on the backend side. That is
+    why I send markup as ajax responses, and not pure json data. Some might
+    argue this is not in the RESTful spirit, but there's nothing in REST
+    definition that disallows it.
+  * If you are thinking of building an app that allows more than a single UI,
+    then you must send data on json, and generate the markup on the client
+    side.
+  * I used html form fields for emails, dates, number and formatting. Some
+    browsers do not yet support a date entry popup (like opera), so there's a
+    fallback to use a jquery-ui calendar popup.
+  * I did not use flask-sijax, it seemed to me like it would not save any
+    code, and I wasn't sure if it has any added value in this app.
+  * I did not use flask-login either. It seemed a bit like an overkill for
+    this app. I did not see how it would support login/signup through ajax
+    easily. I did implement my own 'login_required' and 'anon_only'
+    decorators, so it works almost the same.
+  * I did not handle timezones. As long as the app is running on the same
+    server, it should be fine. If you ever move it to a server on a different
+    time zone, you might find you dates screwed up (depending if you moved up
+    or down the timezone ladder.. :)
+  * I wrote some basic unit tests, there's always room for more testing.
+
+Demo
+
+  * I might have a running demo at http://joggr.dev.yhager.com. If it's not
+    responding it means I took it down, or didn't bother to bring it up. Email
+    me if you want it back (see LICENSE for my email address)
