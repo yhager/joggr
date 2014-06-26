@@ -18,14 +18,20 @@ Features:
 
 Installation:
 
-  * Install flask, easiest using a virtualenv.
-  * Run 'python joggr.py'
-  * The application should be available on http://localhost:5000
+  # pip install flask
+  # sqlite3 joggr.db < schema.sql
 
-  Installing on a server:
+  Running locally:
 
-  * Make your server communicate to fastcgi when accessing the domain (I used nginx)
-  * Run 'python joggr.fcgi' on the server and you should be good to go
+  # python joggr.py
+
+  The application should be available on http://localhost:5000
+
+  Running on a server:
+
+  # python joggr.fcgi
+  And make sure your web server is configured to use FastCGI through
+  /tmp/joggr-fcgi.sock unix socket.
 
 Implementation notes:
 

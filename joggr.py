@@ -12,7 +12,7 @@ app = Flask(__name__)
 app.config.from_object(__name__)
 app.config.update(dict(
     DATABASE=os.path.join(app.root_path, 'joggr.db'),
-    DEBUG=False,
+    DEBUG=True,
     SECRET_KEY='y\xc6\xfcb\x8f0=\xe8Nv\xafkb\xfd\x04!\xf5\x8bEsa\xd4\xa1*',
     ))
 app.config.from_envvar('JOGGR_SETTINGS', silent=True)
